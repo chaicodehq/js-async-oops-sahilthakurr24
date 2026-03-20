@@ -74,13 +74,80 @@
  *   const boundFn = fixWithBind(cart);         // properly bound sellItem
  */
 export function createSamosaCart(ownerName, location) {
-  // Your code here
+  if (
+    typeof ownerName !== "string" ||
+    ownerName === "" ||
+    typeof location !== "string" ||
+    location === ""
+  )
+    return {};
+
+  return {
+    owner: ownerName,
+    location: location,
+    menu: { samosa: 15, jalebi: 20, kachori: 25 },
+    sales: [],
+
+    sellItem(itemName, quantity) {
+      if (
+        typeof itemName !== "string" ||
+        typeof quantity !== "number" ||
+        quantity <= 0
+      ) {
+        return -1;
+      }
+
+      // check if item exists
+      if (itemName in this.menu) {
+        const price = this.menu[itemName];
+
+        const total = price * quantity;
+
+        this.sales.push({
+          item: itemName,
+          quantity,
+          total,
+        });
+
+        return total;
+      }
+
+      return -1;
+    },
+    getDailySales() {
+      if (this.sales.length === 0) return 0;
+
+      const totalSales = this.sales.reduce((acc, curr) => {
+        return acc + curr.total;
+      }, 0);
+      return totalSales;
+    },
+    getPopularItem() {
+      if (this.sales.length === 0) return null;
+
+      const popularItem = this.sales.reduce((acc, curr) => {
+        return curr.quantity > acc.quantity ? curr : acc;
+      }, this.sales[0]);
+      return popularItem.item;
+    },
+    moveTo(newLocation) {
+      if (typeof newLocation !== "string" || newLocation === "") return "";
+      this.location = newLocation;
+      return `${this.owner} ka cart ab ${newLocation} pe hai!`;
+    },
+    resetDay() {
+      this.sales = [];
+      return `${this.owner} ka naya din shuru!`;
+    },
+  };
 }
 
 export function demonstrateThisLoss(cart) {
-  // Your code here
+  const unboundFn = cart.sellItem;
+  return unboundFn;
 }
 
 export function fixWithBind(cart) {
-  // Your code here
+const fn = cart.sellItem.bind(cart);
+return fn;
 }

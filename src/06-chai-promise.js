@@ -72,18 +72,85 @@
  *   //   { status: "rejected", reason: "Yeh chai available nahi hai!" }
  *   // ]
  */
+const prices = new Map([
+  ["cutting", 10],
+  ["special", 20],
+  ["ginger", 15],
+  ["masala", 25],
+]);
+
 export function orderChai(type, quantity) {
-  // Your code here
+
+  const validTypes = new Set(["cutting", "special", "ginger", "masala"]);
+  const price = prices.get(type);
+
+  return new Promise((res, rej) => {
+    if (typeof type === "string" &&  !validTypes.has(type)) {
+      return rej(new Error("Yeh chai available nahi hai!"));
+    }
+
+    if ( typeof quantity !== "number" || quantity <= 0 ) {
+      return rej(new Error("Kitni chai chahiye bhai?"));
+    }
+
+    setTimeout(() => {
+      res({ type, quantity, total: price * quantity });
+    }, 100);
+  });
 }
 
 export function checkIngredients(ingredient) {
-  // Your code here
+  const validIngredients = new Set([
+    "tea",
+    "milk",
+    "sugar",
+    "ginger",
+    "cardamom",
+  ]);
+
+  return new Promise((res, rej) => {
+    if (typeof ingredient !== "string") {
+      return rej(new Error("Invalid ingredient"));
+    }
+
+    const normalized = ingredient.toLowerCase().trim();
+
+    if (validIngredients.has(normalized)) {
+      return res({ ingredient: normalized, available: true });
+    }
+
+    return rej(new Error(`${ingredient} khatam ho gaya!`));
+  });
 }
 
 export function prepareChaiWithTimeout(type, timeoutMs) {
-  // Your code here
+  const chaiPromise = orderChai(type, 1);
+
+  const timeoutPromise = new Promise((_, rej) => {
+    setTimeout(() => {
+      rej(new Error("Bahut der ho gayi, chai nahi bani!"));
+    }, timeoutMs);
+  });
+
+  return Promise.race([chaiPromise, timeoutPromise]);
 }
 
 export function processChaiQueue(orders) {
-  // Your code here
+  if (!Array.isArray(orders) || orders.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  const promises = orders.map((order) => {
+    return orderChai(order.type, order.quantity)
+      .then((result) => ({
+        status: "fulfilled",
+        value: result,
+      }))
+      .catch((error) => ({
+        status: "rejected",
+        reason: error.message,
+      }));
+  });
+
+  return Promise.all(promises);
 }

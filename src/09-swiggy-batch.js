@@ -87,26 +87,97 @@
  *   // => [{ status: "fulfilled", value: {...} },
  *   //     { status: "rejected", reason: "Item name required!" }]
  */
+
 export function prepareOrder(item, prepTime) {
-  // Your code here
+  return new Promise((resolve, reject) => {
+    if (!item) {
+      return reject(new Error("Item name required!"));
+    }
+
+    if (typeof prepTime !== "number" || prepTime <= 0) {
+      return reject(new Error("Invalid prep time!"));
+    }
+
+    setTimeout(() => {
+      resolve({
+        item,
+        ready: true,
+        prepTime,
+      });
+    }, prepTime);
+  });
 }
 
 export function prepareBatch(items) {
-  // Your code here
+  if (!Array.isArray(items) || items.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  const promises = items.map(({ name, prepTime }) =>
+    prepareOrder(name, prepTime),
+  );
+
+  return Promise.all(promises);
 }
 
 export function getFirstReady(items) {
-  // Your code here
+  if (!Array.isArray(items) || items.length === 0) {
+    return Promise.reject(new Error("No items to prepare!"));
+  }
+
+  const promises = items.map(({ name, prepTime }) =>
+    prepareOrder(name, prepTime),
+  );
+
+  return Promise.race(promises);
 }
 
 export function prepareSafeBatch(items) {
-  // Your code here
+  if (!Array.isArray(items) || items.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  const promises = items.map(({ name, prepTime }) =>
+    prepareOrder(name, prepTime),
+  );
+
+  return Promise.allSettled(promises).then((results) =>
+    results.map((res) =>
+      res.status === "fulfilled"
+        ? res
+        : { status: "rejected", reason: res.reason.message },
+    ),
+  );
 }
 
 export function deliverWithTimeout(orderPromise, timeoutMs) {
-  // Your code here
+  if (typeof timeoutMs !== "number" || timeoutMs <= 0) {
+    return Promise.reject(new Error("Invalid timeout!"));
+  }
+
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error("Delivery timeout!"));
+    }, timeoutMs);
+  });
+
+  return Promise.race([orderPromise, timeoutPromise]);
 }
 
-export function batchWithRetry(items, maxRetries) {
-  // Your code here
+export async function batchWithRetry(items, maxRetries) {
+  if (typeof maxRetries !== "number" || maxRetries < 0) {
+    throw new Error("Invalid retries!");
+  }
+
+  let lastError;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await prepareBatch(items);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 }
